@@ -1,0 +1,64 @@
+name: Extract Audio From Video
+
+# Manually triggered from the "Actions" tab on GitHub.
+# Go to: Actions -> "Extract Audio From Video" -> "Run workflow"
+on:
+  workflow_dispatch:
+    inputs:
+      video_url:
+        description: "URL of the video to download"
+        required: true
+        type: string
+      method:
+        description: "Download method"
+        required: false
+        default: "auto"
+        type: choice
+        options:
+          - auto
+          - ytdlp
+          - direct
+      audio_format:
+        description: "Output audio format"
+        required: false
+        default: "mp3"
+        type: choice
+        options:
+          - mp3
+          - wav
+          - aac
+          - flac
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run video/audio extractor
+        run: |
+          python video_audio_extractor.py "${{ inputs.video_url }}" \
+            --method "${{ inputs.method }}" \
+            --audio-format "${{ inputs.audio_format }}" \
+            --output-dir downloads
+
+      - name: Upload audio as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: extracted-audio
+          path: downloads/audio.*
+          retention-days: 7
